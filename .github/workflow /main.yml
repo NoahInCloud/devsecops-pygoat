@@ -3,32 +3,32 @@ name: CI
 on: [push]
 
 jobs:
-  sast_scan:
-  name: Run Bandit Scan
-  runs-on: ubuntu-latest
+ sast_scan:
+   name: Run Bandit Scan
+   runs-on: ubuntu-latest
 
-  steps:
-  - name: checkout code
-  uses: action/ checkout@v2
+   steps:
+   - name: Checkout code
+     uses: actions/checkout@v2
 
-   - name: set up Python
-  uses: action/setup-python@v2
-  with:
-     python-version: 3.8
+   - name: Set up Python
+     uses: actions/setup-python@v2
+     with:
+       python-version: 3.8
 
-     - name: Install Bandit
-      run: pip install bandit
+   - name: Install Bandit
+     run: pip install bandit
 
-    - name: Run bandit Scan
+   - name: Run Bandit Scan
      run: bandit -ll -ii -r . -f json -o bandit-report.json
-     
- - name: upload Artifact
-   uses: action/upload-artifact@v3
-   if: always()
-   with: 
-    name: bandit-findings
-    path: bandit-report.json
-    
+
+   - name: Upload Artifact
+     uses: actions/upload-artifact@v3
+     if: always()
+     with:
+      name: bandit-findings
+      path: bandit-report.json
+
  image_scan:
    name: Build Image and Run Image Scan
    runs-on: ubuntu-latest
@@ -44,15 +44,14 @@ jobs:
 
    - name: Build Docker Image
      run: docker build -f Dockerfile -t myapp:latest .
- 
+  
      - name: Docker Scout Scan
-      run: |
-        curl -fsSL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh -o install-scout.sh
-        sh install-scout.sh
-        echo ${{ secrets.DOCKER_PWD }} | docker login -u ${{ secrets.DOCKER_USER }} --password-stdin
-        docker scout quickview
-        docker scout cves
-
-
+     uses: docker/scout-action@v1.0.9
+     with:
+       dockerhub-user: ${{ secrets.DOCKER_USER }}
+       dockerhub-password: ${{ secrets.DOCKER_PWD }}
+       command: quickview,cves
+       only-severities: critical,high
+       sarif-file: scout-report.sarif
 
 
